@@ -10,7 +10,7 @@ python poker_module.py \
        -p "pranjal manu pranshu" \
        -s "manu"
 
-table = PokerGame(players = ['manu', 'pranjal', 'pranshu', 'manthan'], email_ids=['sidsvash26@gmail.com', 
+table = PokerGame(players = ['manu', 'pranjal', 'pranshu', 'manthan'], email_ids=['svashishtha.iitkgp@gmail.com', 
                                                                             'pranjal.alwar@gmail.com', 
                                                                             'pranshu04.alwar@gmail.com',
                                                                             'manthan2727@gmail.com'])       
@@ -410,7 +410,9 @@ class Player(object):
         self.total_bet = 0
         self.phone_number = phone_number
         self.email_id = email_id
-        
+        self.all_in = False
+        self.separate_pot = False
+
         if len(self.name.strip())==0:
             raise ValueError("Name cannot be empty!")
             
@@ -423,40 +425,72 @@ class Player(object):
     def raise_(self, amount):
         '''
         Implement Raise
+        raise to total amount
         '''
-        if self.chips >= amount:
-            print(f"{self.name} raises to total ${amount+self.current_bet}")
-            self.chips-=amount
-            self.current_bet += amount
-            self.total_bet += self.current_bet
+        if self.chips - self.current_bet > amount:
+            print(f"{self.name} raises to total ${amount}")
+            self.chips -= (amount-self.current_bet)
+            self.total_bet += (amount-self.current_bet)
+            self.current_bet += (amount-self.current_bet)
+            
+        elif self.chips - self.current_bet == amount:
+            print(f"{self.name} puts ${self.chips} and goes ALL IN!!!")
+            self.all_in = True
+            self.chips -= self.chips
+            self.total_bet += self.chips
+            self.current_bet += self.chips
+            
         else:
             print(f"{self.name} doesn't have ${amount} to raise")
+
+        print(f"{self.name} current bet: {self.current_bet}")
+        print(f"{self.name} total bet: {self.total_bet}")
+
             
     def bet_(self, amount):
         '''
-        Implement Raise
+        Implement Bet
+        bet by amount. Bet is only done when current total bet is zero
         '''
-        if self.chips >= amount:
+        if self.chips > amount:
             print(f"{self.name} bets ${amount}")
-            self.chips-=amount
+            self.chips -= amount
             self.current_bet += amount
-            self.total_bet += self.current_bet
+            self.total_bet += amount
+        elif self.chips == amount:
+            print(f"{self.name} puts ${self.chips} and goes ALL IN!!!")
+            self.all_in = True
+            self.chips -= amount
+            self.current_bet += amount
+            self.total_bet += amount
         else:
             print(f"{self.name} doesn't have ${amount} to bet")
+
+
+        print(f"{self.name} current bet: {self.current_bet}")
+        print(f"{self.name} total bet: {self.total_bet}")
+
             
     def call_(self, amount):
         '''
         Implement Call
+
+        amount is -> Current max bet on the table
         '''
-        if self.chips > amount:
-            print(f"{self.name} calls, and matches ${amount+self.current_bet}")
-            self.chips-=amount
-            self.current_bet += amount
+        if self.chips - self.current_bet > amount:
+            print(f"{self.name} calls, and matches ${amount}")
+            self.chips -= (amount - self.current_bet)
+            self.total_bet += (amount-self.current_bet)
+            self.current_bet += (amount-self.current_bet)
         else:
-            print(f"{self.name} goes ALL IN and now puts total ${self.chips+self.current_bet}")
-            self.chips-=self.chips
+            print(f"{self.name} puts ${self.chips} and goes ALL IN!!!")
+            self.all_in = True
+            self.chips -= self.chips
+            self.total_bet += self.chips
             self.current_bet += self.chips
-        self.total_bet += self.current_bet
+
+        print(f"{self.name} current bet: {self.current_bet}")
+        print(f"{self.name} total bet: {self.total_bet}")
             
     def check_(self):
         '''
@@ -507,6 +541,7 @@ class PokerGame(object):
         self.current_pot = 0
         self.public_cards = []
         self.phone_client = phone_client
+        self.pots = []
         
         ## Initialize Player objecys
         self._initialize_players(players, phone_numbers, email_ids)
@@ -587,6 +622,10 @@ class PokerGame(object):
         
         ## Reset pot amount
         self.current_pot = 0
+        self.curr_max_bet = 0
+
+        ## Reset public cards
+        self.public_cards = []
         
     def seating_position(self, verbose=True):
         '''
@@ -876,7 +915,9 @@ class PokerGame(object):
             curr_max_bet = -1 # hack to start the loop
             current_player = self.small_blind_player #start with small blind player
             
+        ## Main round betting loop    
         while current_player.current_bet != curr_max_bet:
+            ## Skip player's turn if they have folded or are ALL-IN
             if not current_player.fold:
                 self._display_table(current_player)
                 
@@ -920,9 +961,10 @@ class PokerGame(object):
                     '''
                     Call
                     '''
-                    amount = curr_max_bet - current_player.current_bet
+                    amount = curr_max_bet
+                    previous_bet = current_player.current_bet
                     current_player.call_(amount)
-                    self.current_pot += amount
+                    self.current_pot += (amount - previous_bet)
                 
                 elif player_response=="b" or player_response=="r":
                     '''
@@ -946,13 +988,15 @@ class PokerGame(object):
                             print(f"Invalid input, please enter a real number")  
                             continue
                         else:            
-                            amount = bet_amount - current_player.current_bet
+                            amount = bet_amount 
                             if player_response=="b":
+                                previous_bet = current_player.current_bet
                                 current_player.bet_(amount)
-                                self.current_pot += amount
+                                self.current_pot += (amount - previous_bet)
                             else:
+                                previous_bet = current_player.current_bet
                                 current_player.raise_(amount)
-                                self.current_pot += amount
+                                self.current_pot += (amount - previous_bet)
                                 
                             break
                             
@@ -964,12 +1008,24 @@ class PokerGame(object):
             count_players+=1
             
             ## If everyone checks, stop the loop
-            if count_players== total_players and curr_max_bet==-1:
+            if count_players == total_players and curr_max_bet==-1:
                 break
         
+        ## Update stuff at the end of round
         self._update_current_players()
         self._display_table(self.small_blind_player)
         self._reset_current_bets()
+
+    def _update_pots(self):
+        '''
+        Create new pots if someone is all-in
+        '''
+        # Find players for which new_pots are to be created
+        new_all_in_players = [player for player in self.current_players 
+                                    if (player.all_in and not player.separate_pot)]
+        
+        for player in new_all_in_players:
+            pass
 
     def _print_public_cards(self):
         '''
@@ -1055,6 +1111,11 @@ class PokerGame(object):
                     current_player_string = f" {colored(player, 'red')} " + "-->"
                     #print(f"length of {player}: {len(current_player_string)}")
                     offset=9
+                elif player.all_in:
+                    current_player_string = f" {colored(player, 'magenta')} " + "-->"
+                    #print(f"length of {player}: {len(current_player_string)}")
+                    offset=9
+
                 else:
                     current_player_string = f" {colored(player, 'yellow')} " + "-->"
                     #print(f"length of {player}: {len(current_player_string)}")
@@ -1069,6 +1130,13 @@ class PokerGame(object):
                 current_bet_string += fold_str
                 ## offset for colored string
                 current_bet_string += " "*(len(current_player_string)-len(current_bet_string)-offset)
+            elif player.all_in:
+                current_bet_string += " "
+                fold_str = f"ALL IN $({player.total_bet})"
+                current_bet_string += fold_str
+                ## offset for colored string
+                current_bet_string += " "*(len(current_player_string)-len(current_bet_string)-offset)
+
             else:
                 current_bet_string += " "
                 amount_str = f"${player.current_bet}"
