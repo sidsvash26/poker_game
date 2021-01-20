@@ -389,7 +389,45 @@ class PokerHand(object):
                 if card1!=card2:
                     return False
             return True
-    
+
+class Deck(object):
+    '''
+    A deck of playing cards with 
+    advanced sampling features
+    '''
+    def __init__(self):
+        self.nums = ['A',2,3,4,5,6,7,8,9,10,'J','Q', 'K']
+        self.suits = {'clubs':"\u2663\uFE0F",
+                     'hearts':"\u2764\uFE0F",
+                     'spades':"\u2660\uFE0F",
+                     'diamonds':"\u2666\uFE0F"}
+
+        self.cards = [Card(n,s) for s in self.suits.values() for n in self.nums]
+
+    def sample_cards(self, n):
+        '''
+        Sample n cards from the deck
+        '''
+        return random.sample(self.cards,n)
+
+    def sample_pokerhand(self, name=''):
+        '''
+        Sample a pokerhand ojbect of the input name (or class)
+        '''
+        ## Random sample if no name given
+        if not name:
+            return PokerHand(random.sample(self.cards,5))
+        else: ## else if name is given
+	    sample = PokerHand(random.sample(self.cards,5))
+            if name not in sample.hand_scores.keys():
+                print(f"Please input a correct hand name")
+                return None
+	    else:
+                while True:
+                    sample = PokerHand(random.sample(self.cards,5))
+                    if sample==name:
+                       return sample
+	    
 class Player(object):
     '''
     A poker player's object
