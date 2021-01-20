@@ -418,14 +418,14 @@ class Deck(object):
         if not name:
             return PokerHand(random.sample(self.cards,5))
         else: ## else if name is given
-	    sample = PokerHand(random.sample(self.cards,5))
-            if name not in sample.hand_scores.keys():
+            sample = PokerHand(random.sample(self.cards,5))
+            if name.lower() not in [name.lower() for name in sample.hand_scores.keys()]:
                 print(f"Please input a correct hand name")
                 return None
-	    else:
+            else:
                 while True:
                     sample = PokerHand(random.sample(self.cards,5))
-                    if sample==name:
+                    if sample.label.lower()==name.lower():
                        return sample
 	    
 class Player(object):
