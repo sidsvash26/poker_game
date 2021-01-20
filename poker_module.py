@@ -514,6 +514,21 @@ class Player(object):
     def __repr__(self):
         return f"{self.name} (${self.chips})"
     
+class Pot(object):
+    '''
+    Object for a pot on the table
+    '''
+    def __init__(self, name='', players = None):
+        self.name = 'Public'
+        self.players = players # List[Player]
+
+        ## Key: Player Name, Value: total bet
+        self.dct = {}
+        for player in players:
+            dct[player.name] = player.total_bet
+
+
+
 class PokerGame(object):
     '''
     A Poker Game's object (i.e. the Poker Table)
@@ -1024,8 +1039,21 @@ class PokerGame(object):
         new_all_in_players = [player for player in self.current_players 
                                     if (player.all_in and not player.separate_pot)]
         
-        for player in new_all_in_players:
-            pass
+        total_bets = {player.name : player.total_bet for player in self.players.values()}
+
+        if new_all_in_players:
+            ## Sort smallest to largest all-in
+            new_all_in_players = sorted(new_all_in_players, key = lambda x: x.current_bet)
+            new_pot = {}
+            for player in new_all_in_players:
+                new_pot['_name'] = player.name
+                pot_max_bet = player.total_bet
+                for player in self.players.values():
+                    
+                    new_pot[player.name] = total_bets[player.name]
+
+
+
 
     def _print_public_cards(self):
         '''
